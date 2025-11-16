@@ -1,0 +1,134 @@
+.cart-page {
+  max-width: 1000px;
+  margin: 20px auto;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #333;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.cart-page h2 {
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.empty-cart {
+  text-align: center;
+  font-style: italic;
+  color: #888;
+}
+
+/* Chia 2 bên */
+.cart-content {
+  display: flex;
+  gap: 20px;
+}
+
+/* Bên trái: danh sách sản phẩm */
+.cart-list-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Bên phải: tổng tiền */
+.cart-summary-right {
+  width: 250px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.cart-summary-right h3 {
+  margin-bottom: 10px;
+}
+
+.total-amount {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.btn-checkout {
+  background-color: #1d3557;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-checkout:hover {
+  background-color: #1e7e34;
+}
+
+.cart-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 6px;
+  background-color: #f0f0f0;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-name {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.item-price {
+  font-weight: 500;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quantity-control button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.quantity-control span {
+  min-width: 24px;
+  text-align: center;
+}
+
+.btn-remove {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-size: 18px;
+  cursor: pointer;
+}

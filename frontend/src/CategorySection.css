@@ -1,0 +1,62 @@
+/* CategorySection.css - Màu đồng bộ, thống nhất */
+.category-list-container {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+  background-color: #f8f9fa; /* nền nhạt tổng thể */
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.category-title {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #007bff; /* màu chính đồng bộ */
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  background-color: #ffffff; /* mỗi item trắng */
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+}
+
+.category-item:hover {
+  background-color: #e6f0ff; /* hover nhạt hơn màu chính */
+  transform: translateX(5px);
+}
+
+.category-link {
+  text-decoration: none;
+  color: #434547;
+  font-weight: 500;
+}
+
+.category-link:hover {
+  text-decoration: underline;
+}
+
+.category-badge {
+  background-color: #1d3557;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  min-width: 30px;
+  text-align: center;
+  font-weight: 500;
+}

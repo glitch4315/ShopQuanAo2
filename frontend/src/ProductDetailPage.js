@@ -1,61 +1,185 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import "./ProductDetailPage.css";
 
-function ProductDetailPage() {
+const ProductDetailPage = () => {
   const { slug } = useParams();
   const [product, setProduct] = useState(null);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [similarProducts, setSimilarProducts] = useState([]);
 
+  // 1️⃣ Fetch tất cả sản phẩm
   useEffect(() => {
-    fetch(`http://localhost:5000/api/products/${slug}`)
-      .then(res => res.json())
-      .then(data => setProduct(data))
-      .catch(err => console.error("Lỗi tải chi tiết sản phẩm:", err))
-      .finally(() => setLoading(false));
+    const fetchAllProducts = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/products");
+        const data = await res.json();
+        setAllProducts(Array.isArray(data) ? data : data.products || []);
+      } catch (err) {
+        console.error("Lỗi fetch all products:", err);
+      }
+    };
+    fetchAllProducts();
+  }, []);
+
+  // 2️⃣ Fetch chi tiết sản phẩm theo slug
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/products/${slug}`);
+        if (!res.ok) throw new Error("Không tìm thấy sản phẩm");
+        const data = await res.json();
+        setProduct(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
   }, [slug]);
 
-  const addToCart = (product) => {
-    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existingItem = existingCart.find(item => item._id === product._id);
+  // 3️⃣ Lọc sản phẩm tương tự dựa vào categoryId và slug
+  useEffect(() => {
+    if (!product || allProducts.length === 0) return;
+    const similar = allProducts.filter(
+      (p) =>
+        p.categoryId?._id === product.categoryId?._id &&
+        p.slug !== product.slug
+    );
+    setSimilarProducts(similar);
+  }, [product, allProducts]);
 
-    if (existingItem) existingItem.quantity += 1;
-    else existingCart.push({ ...product, quantity: 1 });
+  // 4️⃣ Carousel ảnh
+  useEffect(() => {
+    if (!product || !product.images) return;
+    const interval = setInterval(() => {
+      setSelectedImage((prev) =>
+        prev === product.images.length - 1 ? 0 : prev + 1
+      );
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [product]);
 
-    localStorage.setItem("cart", JSON.stringify(existingCart));
-    alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
+  // 5️⃣ Thêm vào giỏ hàng
+  const addToCart = (p) => {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const existing = cart.find((item) => item._id === p._id);
+    if (existing) existing.quantity += 1;
+    else cart.push({ ...p, quantity: 1 });
+    localStorage.setItem("cart", JSON.stringify(cart));
+    alert(`Đã thêm "${p.name}" vào giỏ hàng!`);
   };
 
-  if (loading) return <p>Đang tải sản phẩm...</p>;
-  if (!product || product.message) return <p>Không tìm thấy sản phẩm</p>;
+  if (loading) return <p className="center-text">Đang tải...</p>;
+  if (!product) return <p className="center-text">Không tìm thấy sản phẩm</p>;
 
   return (
-    <div className="product-detail">
-      <h2>{product.name}</h2>
-      <p>{product.description}</p>
-      <p>Giá: {product.basePrice?.toLocaleString()} ₫</p>
+    <div className="product-page">
+      <div className="product-main">
+        {/* Carousel ảnh */}
+        <div className="product-images">
+          <div className="main-image zoom-hover">
+            <img src={product.images[selectedImage]?.url} alt={product.name} />
+            {product.discount && (
+              <span className="badge">-{product.discount}%</span>
+            )}
+            <button
+              className="prev-btn"
+              onClick={() =>
+                setSelectedImage(
+                  selectedImage === 0 ? product.images.length - 1 : selectedImage - 1
+                )
+              }
+            >
+              ‹
+            </button>
+            <button
+              className="next-btn"
+              onClick={() =>
+                setSelectedImage(
+                  selectedImage === product.images.length - 1 ? 0 : selectedImage + 1
+                )
+              }
+            >
+              ›
+            </button>
+          </div>
+          <div className="thumbnail-list">
+            {product.images.map((img, idx) => (
+              <img
+                key={idx}
+                src={img.url}
+                alt=""
+                className={selectedImage === idx ? "thumb selected" : "thumb"}
+                onClick={() => setSelectedImage(idx)}
+              />
+            ))}
+          </div>
+        </div>
 
-      {/* Hiển thị hình ảnh */}
-      <div className="product-images">
-        {product.images.map((img, idx) => (
-          <img key={idx} src={img.url} alt={product.name} style={{ maxWidth: "200px", marginRight: "10px" }} />
-        ))}
+        {/* Thông tin sản phẩm */}
+        <div className="product-info">
+          <h1 className="product-name">{product.name}</h1>
+          <p className="product-price">
+            {product.basePrice.toLocaleString()} ₫{" "}
+            {product.discount && (
+              <span className="old-price">
+                {(product.basePrice * 1.2).toLocaleString()} ₫
+              </span>
+            )}
+          </p>
+
+          {product.variants?.length > 0 && (
+            <div className="variants">
+              <p className="variant-label">Chọn màu / size:</p>
+              <div className="variant-options">
+                {product.variants.map((v, idx) => (
+                  <span key={idx} className="variant-item">
+                    {v.color} / {v.size}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="action-buttons">
+            <button className="btn-add-cart" onClick={() => addToCart(product)}>
+              🛒 Thêm vào giỏ
+            </button>
+          </div>
+
+          <div className="product-description">
+            <h3>Mô tả sản phẩm:</h3>
+            <p>{product.description}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Các biến thể (variants) */}
-      {product.variants?.length > 0 && (
-        <div>
-          <h4>Biến thể:</h4>
-          <ul>
-            {product.variants.map((v) => (
-              <li key={v._id}>{v.color} - {v.size} - {v.price.toLocaleString()} ₫</li>
+      {/* Sản phẩm tương tự */}
+      {similarProducts.length > 0 && (
+        <div className="similar-products">
+          <h2>Sản phẩm tương tự</h2>
+          <div className="similar-grid">
+            {similarProducts.map((p) => (
+              <div key={p._id} className="similar-card">
+                <Link to={`/product/${p.slug}`}>
+                  <img src={p.images?.[0]?.url} alt={p.name} className="similar-img" />
+                  <p className="similar-name">{p.name}</p>
+                  <p className="similar-price">{p.basePrice.toLocaleString()} ₫</p>
+                </Link>
+                <button className="btn-add-cart" onClick={() => addToCart(p)}>
+                  🛒 Thêm vào giỏ
+                </button>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
-
-      <button onClick={() => addToCart(product)}>🛒 Thêm vào giỏ</button>
     </div>
   );
-}
+};
 
 export default ProductDetailPage;

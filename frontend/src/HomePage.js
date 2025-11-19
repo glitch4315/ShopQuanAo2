@@ -1,111 +1,186 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import CategorySection from "./CategorySection";
 import "./HomePage.css";
 
 function HomePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [hoveredProduct, setHoveredProduct] = useState(null);
+
+  const categories = [
+    { name: "Tất cả sản phẩm", slug: "all" },
+    { name: "Áo thun", slug: "ao-thun" },
+    { name: "Áo khoác", slug: "ao-khoac" },
+    { name: "Áo polo", slug: "ao-polo" },
+    { name: "Quần", slug: "quan" },
+    { name: "Phụ kiện", slug: "phu-kien" },
+    { name: "Giày", slug: "giay" }
+  ];
 
   useEffect(() => {
     fetch("http://localhost:5000/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("📦 Product API:", data);
-        if (Array.isArray(data)) {
-          setProducts(data);
-        } else if (Array.isArray(data.products)) {
-          setProducts(data.products);
-        } else {
-          setProducts([]);
-        }
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setProducts(data);
+        else if (Array.isArray(data.products)) setProducts(data.products);
+        else setProducts([]);
       })
-      .catch((err) => console.error("Lỗi tải sản phẩm:", err))
+      .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);
 
-  const addToCart = (product) => {
-    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existingItem = existingCart.find((item) => item._id === product._id);
-
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      existingCart.push({ ...product, quantity: 1 });
-    }
-
-    localStorage.setItem("cart", JSON.stringify(existingCart));
-    alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
-  };
-
-  const handleSearch = () => {
-    if (searchTerm.trim() === "") {
-      fetch("http://localhost:5000/api/products")
-        .then((res) => res.json())
-        .then((data) => setProducts(Array.isArray(data) ? data : data.products || []))
-        .catch((err) => console.error(err));
-    } else {
-      const filtered = products.filter((p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setProducts(filtered);
-    }
-  };
-
   return (
-    <div className="home-container">
-      <div className="cart-header">
-        <Link to="/cart" className="btn-cart-header">
-          🛒 Xem giỏ hàng
-        </Link>
-      </div>
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Tìm sản phẩm..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <button onClick={handleSearch}>Tìm kiếm</button>
-      </div>
+    <div className="homepage">
+      {/* Hero Banner */}
+      <section className="hero-banner">
+        <div className="hero-content">
+          <h1>CLOTHES SHOP</h1>
+          <p>Thời trang hiện đại - Phong cách riêng bạn</p>
+          <Link to="/products" className="cta-button">
+            Khám phá ngay
+          </Link>
+        </div>
+      </section>
 
-      <div className="content-layout">
-        {/* 🔹 Cột trái: Danh mục sản phẩm */}
-        <aside className="category-sidebar">
-          <CategorySection />
-        </aside>
+      {/* Categories Navigation */}
+      <nav className="categories-nav">
+        <div className="container">
+          {categories.map(cat => (
+            <Link 
+              key={cat.slug} 
+              to={cat.slug === "all" ? "/products" : `/category/${cat.slug}`}
+              className="category-link"
+            >
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
-        {/* 🔹 Cột phải: Sản phẩm nổi bật */}
-        <main className="product-main">
-          <h2 className="home-title">Sản phẩm nổi bật</h2>
+      {/* Products Section */}
+      <section className="products-section">
+        <div className="container">
+          <div className="section-header">
+            <h2>Sản phẩm nổi bật</h2>
+            <Link to="/products" className="view-all">
+              Xem tất cả →
+            </Link>
+          </div>
 
           {loading ? (
-            <p>Đang tải sản phẩm...</p>
-          ) : products.length === 0 ? (
-            <p>Không có sản phẩm nào.</p>
+            <div className="loading-container">
+              <div className="spinner"></div>
+              <p>Đang tải sản phẩm...</p>
+            </div>
           ) : (
             <div className="product-grid">
-              {products.map((product) => (
-                <div key={product._id} className="product-card">
-                  <Link to={`/product/${product._id}`}>
-                    <h4 className="product-name">{product.name}</h4>
+              {products.slice(0, 8).map(product => (
+                <div 
+                  key={product._id} 
+                  className="product-card"
+                  onMouseEnter={() => setHoveredProduct(product._id)}
+                  onMouseLeave={() => setHoveredProduct(null)}
+                >
+                  <Link to={`/product/${product.slug}`} className="product-link">
+                    <div className="product-image-wrapper">
+                      <img
+                        src={product.images?.[0]?.url || "https://via.placeholder.com/300x400"}
+                        alt={product.name}
+                        className="product-image"
+                      />
+                      {product.images?.[1] && hoveredProduct === product._id && (
+                        <img
+                          src={product.images[1].url}
+                          alt={product.name}
+                          className="product-image-hover"
+                        />
+                      )}
+                      
+                      {/* Sale Badge */}
+                      {product.salePrice && (
+                        <span className="sale-badge">SALE</span>
+                      )}
+                    </div>
+
+                    <div className="product-info">
+                      <h3 className="product-name">{product.name}</h3>
+                      <div className="product-price">
+                        {product.salePrice ? (
+                          <>
+                            <span className="price-sale">
+                              {product.salePrice.toLocaleString()}₫
+                            </span>
+                            <span className="price-original">
+                              {product.basePrice.toLocaleString()}₫
+                            </span>
+                          </>
+                        ) : (
+                          <span className="price-regular">
+                            {product.basePrice.toLocaleString()}₫
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quick view button on hover */}
+                      {hoveredProduct === product._id && (
+                        <button className="quick-view-btn">
+                          Xem nhanh
+                        </button>
+                      )}
+                    </div>
                   </Link>
-                  <p className="product-price">
-                    {product.basePrice?.toLocaleString()} ₫
-                  </p>
-                  <button
-                    className="btn-add-cart"
-                    onClick={() => addToCart(product)}
-                  >
-                    🛒 Thêm vào giỏ
-                  </button>
                 </div>
               ))}
             </div>
           )}
-        </main>
-      </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="features-section">
+        <div className="container">
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">🚚</div>
+              <h3>Miễn phí vận chuyển</h3>
+              <p>Đơn hàng từ 500.000₫</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">↩️</div>
+              <h3>Đổi trả dễ dàng</h3>
+              <p>Trong vòng 7 ngày</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">💳</div>
+              <h3>Thanh toán an toàn</h3>
+              <p>Nhiều hình thức thanh toán</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🎁</div>
+              <h3>Ưu đãi hấp dẫn</h3>
+              <p>Khuyến mãi thường xuyên</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="newsletter-section">
+        <div className="container">
+          <div className="newsletter-content">
+            <h2>Đăng ký nhận tin</h2>
+            <p>Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt</p>
+            <form className="newsletter-form">
+              <input 
+                type="email" 
+                placeholder="Nhập email của bạn" 
+                required
+              />
+              <button type="submit">Đăng ký</button>
+            </form>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

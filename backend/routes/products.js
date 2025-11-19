@@ -33,9 +33,9 @@ router.get("/by-category/:slug", async (req, res) => {
     const category = await database.collection("categories").findOne({ slug });
     if (!category) return res.status(404).json({ message: "Danh mục không tồn tại" });
 
-    // Lấy sản phẩm theo categoryId (ObjectId)
+    // Lấy sản phẩm theo categoryId
     const products = await database.collection("products")
-      .find({ categoryId: new ObjectId(category._id) })
+      .find({ categoryId: category._id })
       .toArray();
 
     const productsSafe = products.map(p => ({

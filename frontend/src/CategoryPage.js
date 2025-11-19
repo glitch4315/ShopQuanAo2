@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import "./CategoryPage.css";
 
 function CategoryPage() {
   const { slug } = useParams(); // Lấy slug từ URL
@@ -7,16 +8,16 @@ function CategoryPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   
-useEffect(() => {
-  fetch(`http://localhost:5000/api/products/by-category/${slug}`)
-    .then(res => res.json())
-    .then(data => {
-      setCategory(data.category);
-      setProducts(Array.isArray(data.products) ? data.products : []);
-    })
-    .catch(err => console.error("Lỗi tải sản phẩm theo danh mục:", err))
-    .finally(() => setLoading(false));
-}, [slug]);
+  useEffect(() => {
+    fetch(`http://localhost:5000/api/products/by-category/${slug}`)
+      .then(res => res.json())
+      .then(data => {
+        setCategory(data.category);
+        setProducts(Array.isArray(data.products) ? data.products : []);
+      })
+      .catch(err => console.error("Lỗi tải sản phẩm theo danh mục:", err))
+      .finally(() => setLoading(false));
+  }, [slug]);
 
   const addToCart = (product) => {
     const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -44,7 +45,15 @@ useEffect(() => {
         <div className="product-grid">
           {products.map((p) => (
             <div key={p._id} className="product-card">
-              <h4 className="product-name">{p.name}</h4>
+              {/* Link tới chi tiết sản phẩm */}
+              <Link to={`/product/${p.slug}`} className="product-link">
+                <img
+                  src={p.images?.[0]?.url || "https://via.placeholder.com/200"}
+                  alt={p.name}
+                  className="product-image"
+                />
+                <h4 className="product-name">{p.name}</h4>
+              </Link>
               <p className="product-price">{p.basePrice?.toLocaleString()} ₫</p>
               <button
                 className="btn-add-cart"

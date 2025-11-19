@@ -6,7 +6,9 @@ const db = require("../db");
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { fullName, email, password } = req.body;
+    const name = fullName;
+
 
     if (!name || !email || !password)
       return res.status(400).json({ message: "Thiếu thông tin đăng ký" });
@@ -17,11 +19,13 @@ router.post("/register", async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     const result = await database.collection("users").insertOne({
-      name,
-      email,
-      password: hash,
+    name,
+    email,
+    password: hash,
+    phone: req.body.phone,
+    address: req.body.address
     });
-
+    
     res.json({ message: "Đăng ký thành công", user: { id: result.insertedId, name, email } });
   } catch (err) {
     console.error("❌ Lỗi register:", err);
@@ -42,7 +46,7 @@ router.post("/login", async (req, res) => {
 
     if (!user) return res.status(400).json({ message: "Email không tồn tại" });
 
-    const match = await bcrypt.compare(password, user.passwordHash);
+    const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: "Mật khẩu không đúng" });
 
     res.json({ message: "Đăng nhập thành công", user: { id: user._id, name: user.name, email: user.email } });

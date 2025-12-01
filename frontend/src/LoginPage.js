@@ -26,9 +26,9 @@ const LoginPage = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        // ✅ Lưu key đồng bộ với Navbar
-        localStorage.setItem('loggedInUser', JSON.stringify(data.user));
-        navigate('/');
+  localStorage.setItem('token', data.token);
+  localStorage.setItem('user', JSON.stringify(data.user));
+  navigate('/');
       } else {
         setError(data.message || 'Đăng nhập thất bại');
       }

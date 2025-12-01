@@ -9,8 +9,10 @@ function AdminPage() {
   const [newProduct, setNewProduct] = useState({
     name: "",
     basePrice: "",
+    description: "",
+    categoryId: "",
     images: [],
-    categorySlug: ""
+    variants: []
   });
 
   useEffect(() => {
@@ -35,12 +37,14 @@ function AdminPage() {
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
-    if (!newProduct.categorySlug) return alert("Vui lòng chọn danh mục");
+    if (!newProduct.categoryId) return alert("Vui lòng chọn danh mục");
 
     const formData = new FormData();
     formData.append("name", newProduct.name);
     formData.append("basePrice", newProduct.basePrice);
-    formData.append("categorySlug", newProduct.categorySlug);
+    formData.append("description", newProduct.description);
+    formData.append("categoryId", newProduct.categoryId);
+    formData.append("variants", JSON.stringify(newProduct.variants));
     for (let file of newProduct.images) formData.append("images", file);
 
     try {
@@ -50,9 +54,17 @@ function AdminPage() {
       });
       const data = await res.json();
       setProducts([...products, data]);
-      setNewProduct({ name: "", basePrice: "", images: [], categorySlug: "" });
+      setNewProduct({
+        name: "",
+        basePrice: "",
+        description: "",
+        categoryId: "",
+        images: [],
+        variants: []
+      });
     } catch (err) {
       console.error(err);
+      alert("Thêm sản phẩm thất bại");
     }
   };
 
@@ -70,8 +82,8 @@ function AdminPage() {
 
   return (
     <div className="admin-container">
-      {/* Bên trái: danh sách */}
       <div className="admin-left">
+        {/* USERS */}
         <section className="admin-section">
           <h2>Người dùng</h2>
           <table className="admin-table">
@@ -98,6 +110,7 @@ function AdminPage() {
           </table>
         </section>
 
+        {/* PRODUCTS */}
         <section className="admin-section">
           <h2>Sản phẩm</h2>
           <table className="admin-table">
@@ -116,7 +129,7 @@ function AdminPage() {
                   <td>{p._id}</td>
                   <td>{p.name}</td>
                   <td>{p.basePrice.toLocaleString()} ₫</td>
-                  <td>{p.categorySlug}</td>
+                  <td>{categories.find(c => c._id === p.categoryId)?.name || "Chưa chọn"}</td>
                   <td>
                     <button className="btn-delete" onClick={() => deleteProduct(p._id)}>Xóa</button>
                   </td>
@@ -127,7 +140,7 @@ function AdminPage() {
         </section>
       </div>
 
-      {/* Bên phải: form thêm sản phẩm */}
+      {/* ADD PRODUCT */}
       <div className="admin-right">
         <h2>Thêm sản phẩm</h2>
         <form className="admin-form" onSubmit={handleAddProduct}>
@@ -145,14 +158,19 @@ function AdminPage() {
             onChange={e => setNewProduct({ ...newProduct, basePrice: e.target.value })}
             required
           />
+          <textarea
+            placeholder="Mô tả sản phẩm"
+            value={newProduct.description}
+            onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
+          />
           <select
-            value={newProduct.categorySlug}
-            onChange={e => setNewProduct({ ...newProduct, categorySlug: e.target.value })}
+            value={newProduct.categoryId}
+            onChange={e => setNewProduct({ ...newProduct, categoryId: e.target.value })}
             required
           >
             <option value="">Chọn danh mục</option>
             {categories.map(c => (
-              <option key={c._id} value={c.slug}>{c.name}</option>
+              <option key={c._id} value={c._id}>{c.name}</option>
             ))}
           </select>
           <input

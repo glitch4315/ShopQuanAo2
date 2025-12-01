@@ -1,20 +1,23 @@
+// routes/cart.js
 const express = require("express");
 const router = express.Router();
-const db = require("../db"); // file kết nối MongoDB
+const db = require("../db");
 const { ObjectId } = require("mongodb");
 
+// ✅ Import middleware kiểm tra token
+const authMiddleware = require("../middleware/auth"); 
+
 /* ============================================
-   ✅ Lấy giỏ hàng theo userId
+   Lấy giỏ hàng của user hiện tại
 ============================================ */
-router.get("/:userId", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.user_id; // lấy user_id từ token
     const database = await db();
     const carts = database.collection("carts");
 
-    const cart = await carts.findOne({ userId: req.params.userId });
-
-    res.json(cart || { userId: req.params.userId, items: [] });
-    console.log("👉 Cart từ DB:", cart);
+    const cart = await carts.findOne({ userId });
+    res.json(cart || { userId, items: [] });
 
   } catch (err) {
     console.error("❌ GET cart error:", err);
@@ -23,24 +26,21 @@ router.get("/:userId", async (req, res) => {
 });
 
 /* ============================================
-   ✅ Thêm sản phẩm vào giỏ hàng
+   Thêm sản phẩm vào giỏ hàng
 ============================================ */
-router.post("/add", async (req, res) => {
+router.post("/add", authMiddleware, async (req, res) => {
   try {
-    const { userId, product } = req.body;
+    const userId = req.user.user_id;
+    const { product } = req.body;
 
-    if (!userId || !product)
-      return res.status(400).json({ message: "Thiếu userId hoặc product" });
+    if (!product) return res.status(400).json({ message: "Thiếu product" });
 
     const database = await db();
     const carts = database.collection("carts");
-    console.log("🛒 Sau khi thêm:", updatedCart);
-
 
     // Kiểm tra giỏ hàng có chưa
     const cart = await carts.findOne({ userId });
 
-    // Nếu chưa có giỏ → tạo mới
     if (!cart) {
       await carts.insertOne({
         userId,
@@ -55,22 +55,17 @@ router.post("/add", async (req, res) => {
         ],
         updatedAt: new Date()
       });
-
       return res.json({ message: "Đã tạo giỏ hàng và thêm sản phẩm" });
     }
 
     // Nếu đã có giỏ → kiểm tra sản phẩm tồn tại chưa
-    const existingItem = cart.items.find(
-      (i) => i.productId === product._id
-    );
+    const existingItem = cart.items.find(i => i.productId === product._id);
 
     if (existingItem) {
-      // tăng số lượng
       await carts.updateOne(
         { userId, "items.productId": product._id },
         { $inc: { "items.$.quantity": 1 }, $set: { updatedAt: new Date() } }
       );
-
       return res.json({ message: "Tăng số lượng sản phẩm" });
     }
 
@@ -99,11 +94,12 @@ router.post("/add", async (req, res) => {
 });
 
 /* ============================================
-   ✅ Tăng số lượng
+   Tăng số lượng
 ============================================ */
-router.post("/increase", async (req, res) => {
+router.post("/increase", authMiddleware, async (req, res) => {
   try {
-    const { userId, productId } = req.body;
+    const userId = req.user.user_id;
+    const { productId } = req.body;
 
     const database = await db();
     const carts = database.collection("carts");
@@ -120,22 +116,20 @@ router.post("/increase", async (req, res) => {
 });
 
 /* ============================================
-   ✅ Giảm số lượng (tối thiểu là 1)
+   Giảm số lượng
 ============================================ */
-router.post("/decrease", async (req, res) => {
+router.post("/decrease", authMiddleware, async (req, res) => {
   try {
-    const { userId, productId } = req.body;
+    const userId = req.user.user_id;
+    const { productId } = req.body;
 
     const database = await db();
     const carts = database.collection("carts");
 
-    // Giảm nhưng không cho xuống 0
     await carts.updateOne(
       {
         userId,
-        items: {
-          $elemMatch: { productId, quantity: { $gt: 1 } }
-        }
+        items: { $elemMatch: { productId, quantity: { $gt: 1 } } }
       },
       { $inc: { "items.$.quantity": -1 }, $set: { updatedAt: new Date() } }
     );
@@ -147,21 +141,19 @@ router.post("/decrease", async (req, res) => {
 });
 
 /* ============================================
-   ✅ Xóa 1 sản phẩm khỏi giỏ
+   Xóa 1 sản phẩm khỏi giỏ
 ============================================ */
-router.post("/remove", async (req, res) => {
+router.post("/remove", authMiddleware, async (req, res) => {
   try {
-    const { userId, productId } = req.body;
+    const userId = req.user.user_id;
+    const { productId } = req.body;
 
     const database = await db();
     const carts = database.collection("carts");
 
     await carts.updateOne(
       { userId },
-      {
-        $pull: { items: { productId } },
-        $set: { updatedAt: new Date() }
-      }
+      { $pull: { items: { productId } }, $set: { updatedAt: new Date() } }
     );
 
     res.json({ message: "Đã xóa sản phẩm khỏi giỏ" });
@@ -171,4 +163,3 @@ router.post("/remove", async (req, res) => {
 });
 
 module.exports = router;
-

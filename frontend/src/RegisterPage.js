@@ -84,9 +84,15 @@ const RegisterPage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('Đăng ký thành công! Đang chuyển đến trang đăng nhập...');
+        // Lưu token và user info vào localStorage
+        if (data.token && data.user) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
+
+        setSuccess('Đăng ký thành công!');
         setTimeout(() => {
-          navigate('/login');
+          navigate('/login'); 
         }, 2000);
       } else {
         setError(data.message || 'Đăng ký thất bại');

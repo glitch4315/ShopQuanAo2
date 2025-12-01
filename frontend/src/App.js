@@ -1,10 +1,10 @@
-// App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import HomePage from "./HomePage";
 import LoginPage from "./LoginPage";
 import RegisterPage from "./RegisterPage";
+import ProductsPage from "./ProductsPage.js";
 import CartPage from "./CartPage";
 import CategoryPage from "./CategoryPage";
 import ProductDetailPage from "./ProductDetailPage";
@@ -27,6 +27,7 @@ function AppWrapper() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/products" element={<ProductsPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/product/:slug" element={<ProductDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />

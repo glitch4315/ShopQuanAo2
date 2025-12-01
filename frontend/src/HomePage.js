@@ -29,6 +29,12 @@ function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const getImageUrl = (image) => {
+    if (!image?.url) return "https://via.placeholder.com/300x400";
+    // Nếu url bắt đầu bằng http → dùng nguyên, nếu relative path → thêm host
+    return image.url.startsWith("http") ? image.url : `http://localhost:5000${image.url}`;
+  };
+
   return (
     <div className="homepage">
       {/* Hero Banner */}
@@ -83,20 +89,19 @@ function HomePage() {
                 >
                   <Link to={`/product/${product.slug}`} className="product-link">
                     <div className="product-image-wrapper">
-                      <img
-                        src={product.images?.[0]?.url || "https://via.placeholder.com/300x400"}
-                        alt={product.name}
-                        className="product-image"
-                      />
+                     <img
+  src={product.images?.[0]?.url || "https://via.placeholder.com/300x400"}
+  alt={product.name}
+  className="product-image"
+/>
                       {product.images?.[1] && hoveredProduct === product._id && (
                         <img
-                          src={product.images[1].url}
+                          src={getImageUrl(product.images[1])}
                           alt={product.name}
                           className="product-image-hover"
                         />
                       )}
-                      
-                      {/* Sale Badge */}
+
                       {product.salePrice && (
                         <span className="sale-badge">SALE</span>
                       )}
@@ -121,11 +126,8 @@ function HomePage() {
                         )}
                       </div>
 
-                      {/* Quick view button on hover */}
                       {hoveredProduct === product._id && (
-                        <button className="quick-view-btn">
-                          Xem nhanh
-                        </button>
+                        <button className="quick-view-btn">Xem nhanh</button>
                       )}
                     </div>
                   </Link>
@@ -171,11 +173,7 @@ function HomePage() {
             <h2>Đăng ký nhận tin</h2>
             <p>Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt</p>
             <form className="newsletter-form">
-              <input 
-                type="email" 
-                placeholder="Nhập email của bạn" 
-                required
-              />
+              <input type="email" placeholder="Nhập email của bạn" required />
               <button type="submit">Đăng ký</button>
             </form>
           </div>

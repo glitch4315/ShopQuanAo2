@@ -10,7 +10,7 @@ const ProductDetailPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [similarProducts, setSimilarProducts] = useState([]);
 
-  // 1️⃣ Fetch tất cả sản phẩm
+  // Fetch tất cả sản phẩm
   useEffect(() => {
     const fetchAllProducts = async () => {
       try {
@@ -24,7 +24,7 @@ const ProductDetailPage = () => {
     fetchAllProducts();
   }, []);
 
-  // 2️⃣ Fetch chi tiết sản phẩm theo slug
+  // Fetch chi tiết sản phẩm theo slug
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -41,18 +41,14 @@ const ProductDetailPage = () => {
     fetchProduct();
   }, [slug]);
 
-  // 3️⃣ Lọc sản phẩm tương tự dựa vào categoryId và slug
-  useEffect(() => {
+useEffect(() => {
     if (!product || allProducts.length === 0) return;
     const similar = allProducts.filter(
-      (p) =>
-        p.categoryId?._id === product.categoryId?._id &&
-        p.slug !== product.slug
+      (p) => p.categoryId?._id === product.categoryId?._id && p.slug !== product.slug
     );
     setSimilarProducts(similar);
   }, [product, allProducts]);
 
-  // 4️⃣ Carousel ảnh
   useEffect(() => {
     if (!product || !product.images) return;
     const interval = setInterval(() => {
@@ -63,14 +59,29 @@ const ProductDetailPage = () => {
     return () => clearInterval(interval);
   }, [product]);
 
-  // 5️⃣ Thêm vào giỏ hàng
-  const addToCart = (p) => {
-    const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existing = cart.find((item) => item._id === p._id);
-    if (existing) existing.quantity += 1;
-    else cart.push({ ...p, quantity: 1 });
-    localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`Đã thêm "${p.name}" vào giỏ hàng!`);
+  const addToCart = async (p) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Vui lòng đăng nhập trước khi thêm vào giỏ hàng");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ product: { ...p, basePrice: p.basePrice ?? 0 } })
+      });
+
+      const data = await response.json();
+      alert(data.message || `Đã thêm "${p.name}" vào giỏ hàng!`);
+    } catch (err) {
+      console.error("Lỗi add to cart:", err);
+      alert("Không thể thêm vào giỏ hàng");
+    }
   };
 
   if (loading) return <p className="center-text">Đang tải...</p>;
@@ -79,13 +90,9 @@ const ProductDetailPage = () => {
   return (
     <div className="product-page">
       <div className="product-main">
-        {/* Carousel ảnh */}
         <div className="product-images">
           <div className="main-image zoom-hover">
             <img src={product.images[selectedImage]?.url} alt={product.name} />
-            {product.discount && (
-              <span className="badge">-{product.discount}%</span>
-            )}
             <button
               className="prev-btn"
               onClick={() =>
@@ -120,30 +127,9 @@ const ProductDetailPage = () => {
           </div>
         </div>
 
-        {/* Thông tin sản phẩm */}
         <div className="product-info">
           <h1 className="product-name">{product.name}</h1>
-          <p className="product-price">
-            {product.basePrice.toLocaleString()} ₫{" "}
-            {product.discount && (
-              <span className="old-price">
-                {(product.basePrice * 1.2).toLocaleString()} ₫
-              </span>
-            )}
-          </p>
-
-          {product.variants?.length > 0 && (
-            <div className="variants">
-              <p className="variant-label">Chọn màu / size:</p>
-              <div className="variant-options">
-                {product.variants.map((v, idx) => (
-                  <span key={idx} className="variant-item">
-                    {v.color} / {v.size}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          <p className="product-price">{product.basePrice.toLocaleString()} ₫</p>
 
           <div className="action-buttons">
             <button className="btn-add-cart" onClick={() => addToCart(product)}>
@@ -158,7 +144,6 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      {/* Sản phẩm tương tự */}
       {similarProducts.length > 0 && (
         <div className="similar-products">
           <h2>Sản phẩm tương tự</h2>

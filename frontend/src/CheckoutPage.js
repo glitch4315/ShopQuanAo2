@@ -1,4 +1,3 @@
-// CheckoutPage.js
 import React, { useEffect, useState } from "react";
 import "./CheckoutPage.css";
 
@@ -15,17 +14,42 @@ const CheckoutPage = () => {
     note: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const token = localStorage.getItem("token");
 
+  // 1️⃣ Lấy giỏ hàng từ server theo token
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(savedCart);
-  }, []);
+    if (!token) {
+      alert("Vui lòng đăng nhập trước khi thanh toán");
+      return;
+    }
+
+    const fetchCart = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/cart", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        setCart(data.items?.map(item => ({
+          ...item,
+          price: item.price ?? 0,
+          quantity: item.quantity ?? 1
+        })) || []);
+      } catch (err) {
+        console.error("Lỗi lấy giỏ hàng:", err);
+      }
+    };
+
+    fetchCart();
+  }, [token]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleCheckout = () => {
+  // 2️⃣ Gửi đơn hàng lên server
+  const handleCheckout = async () => {
     const requiredFields = ["name", "email", "phone", "addressLine1", "city", "district"];
     for (let field of requiredFields) {
       if (!form[field]) {
@@ -34,13 +58,46 @@ const CheckoutPage = () => {
       }
     }
 
-    const total = cart.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
-    alert(`Thanh toán thành công!\nTổng: ${total.toLocaleString()} ₫\nPhương thức: ${paymentMethod}`);
-    setCart([]);
-    localStorage.removeItem("cart");
+    if (!token) {
+      alert("Vui lòng đăng nhập trước khi thanh toán");
+      return;
+    }
+
+    const orderData = {
+      cart: cart.map(item => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      customer: form,
+      paymentMethod,
+    };
+
+    try {
+      const res = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Đặt hàng thành công! Mã đơn: ${data.orderId}\nTổng: ${data.total.toLocaleString()} ₫`);
+        setCart([]);
+      } else {
+        alert(data.message || "Đặt hàng thất bại");
+      }
+    } catch (err) {
+      console.error("Lỗi đặt hàng:", err);
+      alert("Không thể đặt hàng");
+    }
   };
 
-  const totalPrice = cart.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price ?? 0) * (item.quantity ?? 1), 0);
 
   if (!cart.length) return <p>Giỏ hàng trống. <a href="/">Quay lại trang chủ</a></p>;
 
@@ -48,40 +105,25 @@ const CheckoutPage = () => {
     <div className="checkout-container">
       <div className="checkout-left">
         <h2>Thông tin khách hàng</h2>
-        <div className="form-group">
-          <label>Họ và tên</label>
-          <input name="name" value={form.name} onChange={handleChange} placeholder="Nguyễn Văn A" />
-        </div>
-        <div className="form-group">
-          <label>Email</label>
-          <input name="email" value={form.email} onChange={handleChange} placeholder="email@example.com" />
-        </div>
-        <div className="form-group">
-          <label>Số điện thoại</label>
-          <input name="phone" value={form.phone} onChange={handleChange} placeholder="0xxxxxxxxx" />
-        </div>
-        <div className="form-group">
-          <label>Địa chỉ</label>
-          <input name="addressLine1" value={form.addressLine1} onChange={handleChange} placeholder="Số nhà, đường" />
-          <input name="addressLine2" value={form.addressLine2} onChange={handleChange} placeholder="Phường / Xã" />
-          <input name="district" value={form.district} onChange={handleChange} placeholder="Quận / Huyện" />
-          <input name="city" value={form.city} onChange={handleChange} placeholder="Tỉnh / Thành phố" />
-        </div>
-        <div className="form-group">
-          <label>Ghi chú (tùy chọn)</label>
-          <textarea name="note" value={form.note} onChange={handleChange} placeholder="Ví dụ: Giao giờ hành chính" />
-        </div>
+        {["name","email","phone","addressLine1","addressLine2","district","city","note"].map(field => (
+          <div className="form-group" key={field}>
+            <label>{field}</label>
+            {field === "note" ? (
+              <textarea name={field} value={form[field]} onChange={handleChange} placeholder="Ghi chú..." />
+            ) : (
+              <input name={field} value={form[field]} onChange={handleChange} placeholder={field} />
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="checkout-right">
         <h2>Đơn hàng</h2>
         <ul className="cart-items">
           {cart.map(item => (
-            <li key={item._id} className="cart-item">
-              <img src={item.images?.[0]?.url || "https://via.placeholder.com/50"} alt={item.name} />
-              <span className="cart-item-info">
-                {item.name} x {item.quantity} - {item.basePrice.toLocaleString()} ₫
-              </span>
+            <li key={item.productId} className="cart-item">
+              <img src={item.image || "https://via.placeholder.com/50"} alt={item.name} />
+              <span>{item.name} x {item.quantity} - {(item.price ?? 0).toLocaleString()} ₫</span>
             </li>
           ))}
         </ul>

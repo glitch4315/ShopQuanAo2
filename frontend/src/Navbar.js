@@ -5,19 +5,27 @@ import "./Navbar.css";
 function Navbar() {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState(null);
+  const [user, setUser] = useState(null);
 
+  // Lấy số lượng giỏ hàng từ localStorage
   const cartCount = JSON.parse(localStorage.getItem("cart"))?.length || 0;
 
   useEffect(() => {
-    // ✅ Cập nhật trạng thái đăng nhập
-    const user = JSON.parse(localStorage.getItem("loggedInUser"));
-    setLoggedInUser(user);
+    // ✅ Lấy token + user từ localStorage
+    const token = localStorage.getItem("token");
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+
+    if (token && storedUser) {
+      setUser(storedUser);
+    } else {
+      setUser(null);
+    }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
-    setLoggedInUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
     navigate("/login");
   };
 
@@ -30,10 +38,10 @@ function Navbar() {
       <div className="navbar-right">
         <Link to="/cart" className="nav-link">Giỏ hàng ({cartCount})</Link>
 
-        {loggedInUser ? (
+        {user ? (
           <div className="profile-dropdown">
             <button className="dropdown-toggle" onClick={() => setDropdownOpen(!dropdownOpen)}>
-              {loggedInUser.name} ▼
+              {user.name} ▼
             </button>
             {dropdownOpen && (
               <div className="dropdown-menu">

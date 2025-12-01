@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import ChatBoxAI from "./components/ChatBoxAI";
 import "./HomePage.css";
 
 function HomePage() {
@@ -30,9 +31,11 @@ function HomePage() {
   }, []);
 
   const getImageUrl = (image) => {
-    if (!image?.url) return "https://via.placeholder.com/300x400";
-    // Nếu url bắt đầu bằng http → dùng nguyên, nếu relative path → thêm host
-    return image.url.startsWith("http") ? image.url : `http://localhost:5000${image.url}`;
+    if (!image?.url) return "/placeholder.jpg";
+
+    return image.url.startsWith("http")
+      ? image.url
+      : `http://localhost:5000${image.url}`;
   };
 
   return (
@@ -47,13 +50,16 @@ function HomePage() {
           </Link>
         </div>
       </section>
+      <div>
+  <ChatBoxAI />
+</div>
 
-      {/* Categories Navigation */}
+      {/* Categories */}
       <nav className="categories-nav">
         <div className="container">
           {categories.map(cat => (
-            <Link 
-              key={cat.slug} 
+            <Link
+              key={cat.slug}
               to={cat.slug === "all" ? "/products" : `/category/${cat.slug}`}
               className="category-link"
             >
@@ -63,7 +69,7 @@ function HomePage() {
         </div>
       </nav>
 
-      {/* Products Section */}
+      {/* Products */}
       <section className="products-section">
         <div className="container">
           <div className="section-header">
@@ -72,7 +78,7 @@ function HomePage() {
               Xem tất cả →
             </Link>
           </div>
-
+        <ChatBoxAI /> 
           {loading ? (
             <div className="loading-container">
               <div className="spinner"></div>
@@ -81,19 +87,20 @@ function HomePage() {
           ) : (
             <div className="product-grid">
               {products.slice(0, 8).map(product => (
-                <div 
-                  key={product._id} 
+                <div
+                  key={product._id}
                   className="product-card"
                   onMouseEnter={() => setHoveredProduct(product._id)}
                   onMouseLeave={() => setHoveredProduct(null)}
                 >
                   <Link to={`/product/${product.slug}`} className="product-link">
                     <div className="product-image-wrapper">
-                     <img
-  src={product.images?.[0]?.url || "https://via.placeholder.com/300x400"}
-  alt={product.name}
-  className="product-image"
-/>
+                      <img
+                        src={getImageUrl(product.images?.[0])}
+                        alt={product.name}
+                        className="product-image"
+                      />
+
                       {product.images?.[1] && hoveredProduct === product._id && (
                         <img
                           src={getImageUrl(product.images[1])}
@@ -109,6 +116,12 @@ function HomePage() {
 
                     <div className="product-info">
                       <h3 className="product-name">{product.name}</h3>
+
+                      {/* 🔥 MÔ TẢ AI */}
+                      <p className="product-desc">
+                        {product.description?.slice(0, 70) || "Không có mô tả"}...
+                      </p>
+
                       <div className="product-price">
                         {product.salePrice ? (
                           <>
@@ -135,48 +148,6 @@ function HomePage() {
               ))}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="features-section">
-        <div className="container">
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">🚚</div>
-              <h3>Miễn phí vận chuyển</h3>
-              <p>Đơn hàng từ 500.000₫</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">↩️</div>
-              <h3>Đổi trả dễ dàng</h3>
-              <p>Trong vòng 7 ngày</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">💳</div>
-              <h3>Thanh toán an toàn</h3>
-              <p>Nhiều hình thức thanh toán</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">🎁</div>
-              <h3>Ưu đãi hấp dẫn</h3>
-              <p>Khuyến mãi thường xuyên</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      <section className="newsletter-section">
-        <div className="container">
-          <div className="newsletter-content">
-            <h2>Đăng ký nhận tin</h2>
-            <p>Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt</p>
-            <form className="newsletter-form">
-              <input type="email" placeholder="Nhập email của bạn" required />
-              <button type="submit">Đăng ký</button>
-            </form>
-          </div>
         </div>
       </section>
     </div>

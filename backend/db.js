@@ -5,7 +5,7 @@ const client = new MongoClient(uri);
 async function db() {
   await client.connect();
   console.log("Kết nối MongoDB thành công");
-  return client.db("qlquanao"); // ✅ trả về database object
+  return client.db("qlquanao"); 
 }
 
 module.exports = db;

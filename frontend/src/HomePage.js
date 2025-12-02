@@ -13,9 +13,11 @@ function HomePage() {
     { name: "Áo thun", slug: "ao-thun" },
     { name: "Áo khoác", slug: "ao-khoac" },
     { name: "Áo polo", slug: "ao-polo" },
-    { name: "Quần", slug: "quan" },
+    { name: "Quần jean", slug: "quan-jean" },
     { name: "Phụ kiện", slug: "phu-kien" },
-    { name: "Giày", slug: "giay" }
+    { name: "Giày", slug: "giay-dep" },
+    { name: "Đầm Midi", slug: "dam-midi"},
+
   ];
 
   useEffect(() => {
@@ -31,13 +33,15 @@ function HomePage() {
   }, []);
 
   const getImageUrl = (image) => {
-    if (!image?.url) return "/placeholder.jpg";
+  if (!image) return "/placeholder.jpg";
+  const imgUrl = image.url || image; 
 
-    return image.url.startsWith("http")
-      ? image.url
-      : `http://localhost:5000${image.url}`;
-  };
-
+  if (typeof imgUrl === "string" && imgUrl.startsWith("http")) {
+    return imgUrl;
+  }
+  return `http://localhost:5000/uploads/${imgUrl}`;
+};
+ 
   return (
     <div className="homepage">
       {/* Hero Banner */}
@@ -96,18 +100,19 @@ function HomePage() {
                   <Link to={`/product/${product.slug}`} className="product-link">
                     <div className="product-image-wrapper">
                       <img
-                        src={getImageUrl(product.images?.[0])}
-                        alt={product.name}
-                        className="product-image"
-                      />
-
-                      {product.images?.[1] && hoveredProduct === product._id && (
-                        <img
-                          src={getImageUrl(product.images[1])}
-                          alt={product.name}
-                          className="product-image-hover"
+                       src={getImageUrl(product.images?.[0])}
+                       alt={product.name}
+                       className="product-image"
                         />
-                      )}
+
+                      {hoveredProduct === product._id && product.images?.[1] && (
+                      <img
+                        src={getImageUrl(product.images[1])}
+                        alt={product.name}
+                        className="product-image-hover"
+                      />
+                    )}
+
 
                       {product.salePrice && (
                         <span className="sale-badge">SALE</span>
@@ -117,26 +122,13 @@ function HomePage() {
                     <div className="product-info">
                       <h3 className="product-name">{product.name}</h3>
 
-                      {/* 🔥 MÔ TẢ AI */}
+                     
                       <p className="product-desc">
                         {product.description?.slice(0, 70) || "Không có mô tả"}...
                       </p>
 
                       <div className="product-price">
-                        {product.salePrice ? (
-                          <>
-                            <span className="price-sale">
-                              {product.salePrice.toLocaleString()}₫
-                            </span>
-                            <span className="price-original">
-                              {product.basePrice.toLocaleString()}₫
-                            </span>
-                          </>
-                        ) : (
-                          <span className="price-regular">
-                            {product.basePrice.toLocaleString()}₫
-                          </span>
-                        )}
+                        
                       </div>
 
                       {hoveredProduct === product._id && (

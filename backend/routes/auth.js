@@ -5,8 +5,9 @@ const router = express.Router();
 const db = require("../db");
 
 const JWT_SECRET = "your_secret_key"; 
+const authMiddleware = require("../middleware/auth");  
 
-// Hàm lấy user_id tiếp theo (auto-increment)
+// Hàm lấy user_id tiếp theo
 async function getNextUserId(database) {
   const result = await database.collection("counters").findOneAndUpdate(
     { _id: "user_id" },
@@ -14,7 +15,6 @@ async function getNextUserId(database) {
     { returnDocument: "after", upsert: true }
   );
 
-  // Nếu value undefined (driver không trả về value khi upsert), đọc lại document
   if (!result.value) {
     const doc = await database.collection("counters").findOne({ _id: "user_id" });
     return doc.seq;
@@ -59,7 +59,7 @@ router.post("/register", async (req, res) => {
       user: { user_id, name: fullName, email }
     });
   } catch (err) {
-    console.error("❌ Lỗi register:", err);
+    console.error("Lỗi register:", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -92,7 +92,22 @@ router.post("/login", async (req, res) => {
       user: { user_id: user.user_id, name: user.name, email: user.email }
     });
   } catch (err) {
-    console.error("❌ Lỗi login:", err);
+    console.error("Lỗi login:", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const database = await db();
+    const user = await database.collection("users").findOne(
+      { user_id: req.user.user_id },
+      { projection: { password: 0 } } 
+    );
+
+    if (!user) return res.status(404).json({ message: "User không tồn tại" });
+    res.json(user);
+  } catch (err) {
+    console.error("Lỗi /me:", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 });

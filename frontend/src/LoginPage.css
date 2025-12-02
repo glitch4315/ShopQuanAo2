@@ -1,6 +1,6 @@
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #515151 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,14 +47,14 @@
 
 .error-message {
   background-color: #fee;
-  border: 1px solid #fcc;
+  border: 1px solid rgb(103, 103, 103);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #c53030;
+  color: #1d1d1d;
   font-size: 14px;
 }
 
@@ -127,7 +127,7 @@
 
 .submit-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #040404 100%);
   color: white;
   padding: 14px;
   border: none;

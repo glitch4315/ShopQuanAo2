@@ -1,7 +1,6 @@
-// CategorySection.js
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "./CategorySection.css"; // CSS mới
+import "./CategorySection.css";
 
 function CategorySection() {
   const [categories, setCategories] = useState([]);

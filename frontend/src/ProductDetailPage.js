@@ -7,10 +7,8 @@ const ProductDetailPage = () => {
   const [product, setProduct] = useState(null);
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState(0);
   const [similarProducts, setSimilarProducts] = useState([]);
 
-  // Fetch tất cả sản phẩm
   useEffect(() => {
     const fetchAllProducts = async () => {
       try {
@@ -24,7 +22,6 @@ const ProductDetailPage = () => {
     fetchAllProducts();
   }, []);
 
-  // Fetch chi tiết sản phẩm theo slug
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -41,23 +38,20 @@ const ProductDetailPage = () => {
     fetchProduct();
   }, [slug]);
 
-useEffect(() => {
+  const getImageUrl = (image) => {
+    if (!image?.url) return "/placeholder.jpg";
+    return image.url.startsWith("http")
+      ? image.url
+      : `http://localhost:5000/uploads/${image.url}`;
+  };
+
+  useEffect(() => {
     if (!product || allProducts.length === 0) return;
     const similar = allProducts.filter(
-      (p) => p.categoryId?._id === product.categoryId?._id && p.slug !== product.slug
+      (p) => p.categoryId === product.categoryId && p.slug !== product.slug
     );
     setSimilarProducts(similar);
   }, [product, allProducts]);
-
-  useEffect(() => {
-    if (!product || !product.images) return;
-    const interval = setInterval(() => {
-      setSelectedImage((prev) =>
-        prev === product.images.length - 1 ? 0 : prev + 1
-      );
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [product]);
 
   const addToCart = async (p) => {
     const token = localStorage.getItem("token");
@@ -91,51 +85,23 @@ useEffect(() => {
     <div className="product-page">
       <div className="product-main">
         <div className="product-images">
-          <div className="main-image zoom-hover">
-            <img src={product.images[selectedImage]?.url} alt={product.name} />
-            <button
-              className="prev-btn"
-              onClick={() =>
-                setSelectedImage(
-                  selectedImage === 0 ? product.images.length - 1 : selectedImage - 1
-                )
-              }
-            >
-              ‹
-            </button>
-            <button
-              className="next-btn"
-              onClick={() =>
-                setSelectedImage(
-                  selectedImage === product.images.length - 1 ? 0 : selectedImage + 1
-                )
-              }
-            >
-              ›
-            </button>
-          </div>
-          <div className="thumbnail-list">
-            {product.images.map((img, idx) => (
-              <img
-                key={idx}
-                src={img.url}
-                alt=""
-                className={selectedImage === idx ? "thumb selected" : "thumb"}
-                onClick={() => setSelectedImage(idx)}
-              />
-            ))}
+          <div className="main-image zoom-container">
+            <img
+              src={getImageUrl(product.images[0])}
+              alt={product.name}
+              className="zoom-image"
+            />
           </div>
         </div>
 
+        {/* Thông tin sản phẩm */}
         <div className="product-info">
           <h1 className="product-name">{product.name}</h1>
           <p className="product-price">{product.basePrice.toLocaleString()} ₫</p>
 
-          <div className="action-buttons">
-            <button className="btn-add-cart" onClick={() => addToCart(product)}>
-              🛒 Thêm vào giỏ
-            </button>
-          </div>
+          <button className="btn-add-cart" onClick={() => addToCart(product)}>
+            🛒 Thêm vào giỏ
+          </button>
 
           <div className="product-description">
             <h3>Mô tả sản phẩm:</h3>
@@ -144,6 +110,7 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* Sản phẩm tương tự */}
       {similarProducts.length > 0 && (
         <div className="similar-products">
           <h2>Sản phẩm tương tự</h2>
@@ -151,10 +118,15 @@ useEffect(() => {
             {similarProducts.map((p) => (
               <div key={p._id} className="similar-card">
                 <Link to={`/product/${p.slug}`}>
-                  <img src={p.images?.[0]?.url} alt={p.name} className="similar-img" />
+                  <img
+                    src={getImageUrl(p.images?.[0])}
+                    alt={p.name}
+                    className="similar-img"
+                  />
                   <p className="similar-name">{p.name}</p>
                   <p className="similar-price">{p.basePrice.toLocaleString()} ₫</p>
                 </Link>
+
                 <button className="btn-add-cart" onClick={() => addToCart(p)}>
                   🛒 Thêm vào giỏ
                 </button>
@@ -163,6 +135,7 @@ useEffect(() => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

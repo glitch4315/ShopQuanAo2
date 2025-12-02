@@ -4,12 +4,9 @@ const router = express.Router();
 const db = require("../db");
 const { ObjectId } = require("mongodb");
 
-// ✅ Import middleware kiểm tra token
 const authMiddleware = require("../middleware/auth"); 
 
-/* ============================================
-   Lấy giỏ hàng của user hiện tại
-============================================ */
+
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id; // lấy user_id từ token
@@ -20,14 +17,11 @@ router.get("/", authMiddleware, async (req, res) => {
     res.json(cart || { userId, items: [] });
 
   } catch (err) {
-    console.error("❌ GET cart error:", err);
+    console.error("GET cart error:", err);
     res.status(500).json({ message: "Lỗi server khi lấy giỏ hàng" });
   }
 });
 
-/* ============================================
-   Thêm sản phẩm vào giỏ hàng
-============================================ */
 router.post("/add", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -58,7 +52,7 @@ router.post("/add", authMiddleware, async (req, res) => {
       return res.json({ message: "Đã tạo giỏ hàng và thêm sản phẩm" });
     }
 
-    // Nếu đã có giỏ → kiểm tra sản phẩm tồn tại chưa
+    // Nếu đã có giỏ
     const existingItem = cart.items.find(i => i.productId === product._id);
 
     if (existingItem) {
@@ -69,7 +63,7 @@ router.post("/add", authMiddleware, async (req, res) => {
       return res.json({ message: "Tăng số lượng sản phẩm" });
     }
 
-    // Nếu chưa có sản phẩm → thêm vào array
+    // Nếu chưa có sản phẩm
     await carts.updateOne(
       { userId },
       {
@@ -93,9 +87,6 @@ router.post("/add", authMiddleware, async (req, res) => {
   }
 });
 
-/* ============================================
-   Tăng số lượng
-============================================ */
 router.post("/increase", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -115,9 +106,6 @@ router.post("/increase", authMiddleware, async (req, res) => {
   }
 });
 
-/* ============================================
-   Giảm số lượng
-============================================ */
 router.post("/decrease", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -140,9 +128,6 @@ router.post("/decrease", authMiddleware, async (req, res) => {
   }
 });
 
-/* ============================================
-   Xóa 1 sản phẩm khỏi giỏ
-============================================ */
 router.post("/remove", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;

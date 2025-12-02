@@ -24,7 +24,7 @@ function ProductsPage() {
           <div key={product._id} className="product-card">
             <Link to={`/product/${product.slug}`}>
               <img 
-                src={product.images?.[0]?.url ? `http://localhost:5000${product.images[0].url}` : "https://via.placeholder.com/300x400"} 
+                src={product.images?.[0]?.url ? `http://localhost:5000/uploads/${product.images[0].url}` : "https://via.placeholder.com/300x400"} 
                 alt={product.name} 
               />
               <h3>{product.name}</h3>

@@ -7,11 +7,9 @@ function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Lấy số lượng giỏ hàng từ localStorage
-  const cartCount = JSON.parse(localStorage.getItem("cart"))?.length || 0;
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    // ✅ Lấy token + user từ localStorage
     const token = localStorage.getItem("token");
     const storedUser = JSON.parse(localStorage.getItem("user"));
 
@@ -20,6 +18,9 @@ function Navbar() {
     } else {
       setUser(null);
     }
+
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    setCartCount(cart.reduce((acc, item) => acc + item.quantity, 0));
   }, []);
 
   const handleLogout = () => {

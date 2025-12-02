@@ -3,10 +3,9 @@ const router = express.Router();
 const db = require("../db");
 const { ObjectId } = require("mongodb");
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" }); // lưu tạm file ảnh
-const slugify = require("slugify"); // ⚠️ thêm import slugify
+const upload = multer({ dest: "uploads/" }); 
+const slugify = require("slugify"); 
 
-// ===== USERS =====
 // Lấy tất cả user
 router.get("/users", async (req, res) => {
   try {
@@ -29,7 +28,6 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
-// ===== PRODUCTS =====
 // Lấy tất cả sản phẩm
 router.get("/products", async (req, res) => {
   try {
@@ -114,5 +112,85 @@ router.delete("/products/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+// Sửa sản phẩm
+router.put("/products/:id", upload.array("images"), async (req, res) => {
+  try {
+    const database = await db();
+    const productId = new ObjectId(req.params.id);
+
+    // Lấy dữ liệu gửi lên
+    const {
+      name,
+      basePrice,
+      description,
+      categoryId,
+      variants, // dạng JSON string
+      isActive,
+      existingImages // mảng URL ảnh cũ muốn giữ
+    } = req.body;
+
+    // Parse variants nếu có
+    let parsedVariants = [];
+    if (variants) {
+      try {
+        parsedVariants = JSON.parse(variants);
+      } catch (err) {
+        return res.status(400).json({ message: "Variants không hợp lệ" });
+      }
+    }
+
+    // Xử lý ảnh mới upload
+    const newImages = (req.files || []).map((f, idx) => ({
+      url: `/uploads/${f.filename}`,
+      sort: idx + 1
+    }));
+
+    // Kết hợp ảnh cũ và ảnh mới
+    let finalImages = [];
+    if (existingImages) {
+      try {
+        const oldImages = JSON.parse(existingImages);
+        finalImages = [...oldImages, ...newImages];
+      } catch (err) {
+        return res.status(400).json({ message: "Existing images không hợp lệ" });
+      }
+    } else {
+      finalImages = newImages;
+    }
+
+    // Tạo slug nếu có thay đổi tên
+    const slug = name ? slugify(name, { lower: true, strict: true }) : undefined;
+
+    // Cập nhật sản phẩm
+    const updateData = {
+      ...(name && { name, slug }),
+      ...(description && { description }),
+      ...(basePrice && { basePrice: Number(basePrice) }),
+      images: finalImages,
+      ...(categoryId && { categoryId: new ObjectId(categoryId) }),
+      variants: parsedVariants,
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+      updatedAt: new Date()
+    };
+
+    await database.collection("products").updateOne(
+      { _id: productId },
+      { $set: updateData }
+    );
+
+    const updatedProduct = await database
+      .collection("products")
+      .findOne({ _id: productId });
+
+    res.json({
+      ...updatedProduct,
+      _id: updatedProduct._id.toString()
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 module.exports = router;

@@ -1,135 +1,104 @@
-const authMiddleware = require("../middleware/auth");
 const express = require("express");
-const router = express.Router();
-const db = require("../db");
-const moment = require("moment");
-const qs = require("qs");
 const crypto = require("crypto");
+const qs = require("qs");
+const moment = require("moment");
 const config = require("config");
 const { ObjectId } = require("mongodb");
+const authMiddleware = require("../middleware/auth");
+const db = require("../db");
 
-// Hàm sort chuẩn VNPAY
+const router = express.Router();
+
+// Hàm sắp xếp các tham số VNPay
 function sortObject(obj) {
-  const sorted = {};
-  const keys = Object.keys(obj).sort();
-  keys.forEach(k => (sorted[k] = obj[k]));
+  let sorted = {};
+  let str = [];
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) str.push(encodeURIComponent(key));
+  }
+  str.sort();
+  for (let key = 0; key < str.length; key++) {
+    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+  }
   return sorted;
 }
 
+// Tạo URL thanh toán VNPay
 router.post("/create_payment_url", authMiddleware, async (req, res) => {
+  const { amount } = req.body; // Số tiền thanh toán
+  if (!amount) {
+    return res.status(400).json({ success: false, message: "Thiếu amount" });
+  }
+
+  const ipAddr = req.headers["x-forwarded-for"] || req.connection.remoteAddress || "127.0.0.1";
+
   try {
-    process.env.TZ = "Asia/Ho_Chi_Minh";
-
     const database = await db();
-    const userId = req.user.user_id;
+    const order = { _id: new ObjectId(), totalAmount: amount };  // Giả sử dữ liệu order
 
-    const cart = await database.collection("carts").findOne({ userId });
-
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ message: "Giỏ hàng trống" });
-    }
-
-    const total = cart.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-
-    // Tạo đơn hàng
-    const order = {
-      userId,
-      items: cart.items,
-      totalAmount: total,
-      status: 0,
-      createdAt: new Date()
-    };
-
-    const inserted = await database.collection("orders").insertOne(order);
-    const orderId = inserted.insertedId.toString();
-
-    // Lấy thông tin cấu hình
-    const tmnCode = config.get("vnp_TmnCode");
-    const secretKey = config.get("vnp_HashSecret");
-    const vnpUrl = config.get("vnp_Url");
-    const returnUrl = config.get("vnp_ReturnUrl");
-
-    const ipAddr =
-      req.headers["x-forwarded-for"] ||
-      req.connection.remoteAddress ||
-      req.socket.remoteAddress ||
-      "127.0.0.1";
-
+    const totalAmount = Math.floor(order.totalAmount);
 
     let vnp_Params = {
       vnp_Version: "2.1.0",
       vnp_Command: "pay",
-      vnp_TmnCode: tmnCode,
-      vnp_Amount: total * 100,
-      vnp_CurrCode: "VND",
-      vnp_TxnRef: orderId,
-      vnp_OrderInfo: `Thanh toan don hang #${orderId}`,
-      vnp_OrderType: "250000", 
-      vnp_Locale: "vn",
-      vnp_ReturnUrl: returnUrl,
-      vnp_IpAddr: ipAddr,
+      vnp_TmnCode: config.get("vnp_TmnCode"),
+      vnp_Amount: totalAmount * 100, // VNPay yêu cầu số tiền nhân với 100
       vnp_CreateDate: moment().format("YYYYMMDDHHmmss"),
-      vnp_ExpireDate: moment().add(15, "minutes").format("YYYYMMDDHHmmss")
+      vnp_CurrCode: "VND",
+      vnp_TxnRef: order._id.toString(),
+      vnp_OrderInfo: `Thanh toán đơn hàng ${order._id}`,
+      vnp_OrderType: "250001",
+      vnp_ReturnUrl: config.get("vnp_ReturnUrl"),
+      vnp_IpAddr: ipAddr,
+      vnp_Locale: "vn",
     };
 
     vnp_Params = sortObject(vnp_Params);
-
-   
     const signData = qs.stringify(vnp_Params, { encode: false });
-    const hmac = crypto.createHmac("sha512", secretKey);
-    const secureHash = hmac.update(signData).digest("hex");
+    const secureHash = crypto.createHmac("sha512", config.get("vnp_HashSecret")).update(signData).digest("hex");
 
-    vnp_Params["vnp_SecureHash"] = secureHash;
+    vnp_Params.vnp_SecureHash = secureHash;
+    const paymentUrl = config.get("vnp_Url") + "?" + qs.stringify(vnp_Params, { encode: false });
 
-    const paymentUrl = vnpUrl + "?" + qs.stringify(vnp_Params, { encode: false });
-
-    res.json({ paymentUrl });
+    res.json({ success: true, paymentUrl });
 
   } catch (err) {
-    console.error("VNPAY ERROR:", err);
-    res.status(500).json({ message: "Lỗi tạo URL thanh toán" });
+    console.error("Lỗi tạo URL thanh toán:", err);
+    res.status(500).json({ success: false, message: "Không thể tạo URL thanh toán" });
   }
 });
 
-//RETURN URL
+// Xử lý kết quả trả về từ VNPay
 router.get("/vnpay_return", async (req, res) => {
-  let vnp_Params = { ...req.query };
-  const secureHash = vnp_Params["vnp_SecureHash"];
+  const vnp_Params = { ...req.query };
+  const secureHash = vnp_Params.vnp_SecureHash;
 
-  delete vnp_Params["vnp_SecureHash"];
-  delete vnp_Params["vnp_SecureHashType"];
+  delete vnp_Params.vnp_SecureHash;
+  delete vnp_Params.vnp_SecureHashType;
 
-  vnp_Params = sortObject(vnp_Params);
-
-  const secretKey = config.get("vnp_HashSecret");
+  // Sắp xếp các tham số
   const signData = qs.stringify(vnp_Params, { encode: false });
-  const validHash = crypto.createHmac("sha512", secretKey)
-    .update(signData)
-    .digest("hex");
+  const checkSum = crypto.createHmac("sha512", config.get("vnp_HashSecret")).update(signData).digest("hex");
 
-  const database = await db();
-  const orderId = vnp_Params["vnp_TxnRef"];
+  const orderId = vnp_Params.vnp_TxnRef;
+  const rspCode = vnp_Params.vnp_ResponseCode;
 
-  // Xác minh chữ ký
-  if (secureHash === validHash && vnp_Params["vnp_ResponseCode"] === "00") {
+  if (secureHash === checkSum && rspCode === "00") {
+    // Thanh toán thành công
+    const database = await db();
     await database.collection("orders").updateOne(
       { _id: new ObjectId(orderId) },
-      { $set: { status: 1 } }
+      { $set: { status: "paid", paidAt: new Date() } }
     );
+    // Xóa giỏ hàng sau khi thanh toán thành công
+    await database.collection("carts").deleteOne({ userId: vnp_Params.vnp_UserId });
 
-    const order = await database.collection("orders")
-      .findOne({ _id: new ObjectId(orderId) });
-
-    await database.collection("carts").deleteOne({ userId: order.userId });
+    // Redirect về trang thành công
+    res.redirect("http://localhost:3000/checkout-success?orderId=" + orderId);
+  } else {
+    // Thanh toán thất bại
+    res.redirect("http://localhost:3000/checkout-fail?code=" + rspCode);
   }
-
-  res.redirect(
-    "http://localhost:3000/vnpay_return?" +
-      qs.stringify(req.query, { encode: false })
-  );
 });
 
 module.exports = router;

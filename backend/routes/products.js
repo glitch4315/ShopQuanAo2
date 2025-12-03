@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 
     res.json(productsSafe);
   } catch (err) {
-    console.error("Lỗi khi lấy tất cả sản phẩm:", err);
+    console.error("Lỗi lấy tất cả sản phẩm:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -42,7 +42,7 @@ router.get("/by-category/:slug", async (req, res) => {
 
     res.json({ category, products: productsSafe });
   } catch (err) {
-    console.error("Lỗi khi lấy sản phẩm theo danh mục:", err);
+    console.error("Lỗi lấy sản phẩm theo danh mục:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -64,7 +64,7 @@ router.get("/:slug", async (req, res) => {
 
     res.json(productSafe);
   } catch (err) {
-    console.error("Lỗi khi lấy chi tiết sản phẩm:", err);
+    console.error("Lỗi lấy chi tiết sản phẩm:", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 });

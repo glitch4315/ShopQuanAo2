@@ -38,7 +38,7 @@ router.post("/register", async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
 
-    // Lấy user_id tiếp theo
+    // Lấy user_id
     const user_id = await getNextUserId(database);
 
     const result = await database.collection("users").insertOne({

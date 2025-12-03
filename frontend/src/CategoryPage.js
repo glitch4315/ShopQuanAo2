@@ -82,23 +82,6 @@ function CategoryPage() {
     }
   };
 
-  // Thêm vào yêu thích
-  const addToWishlist = (product, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
-    const exists = wishlist.find(item => item._id === product._id);
-    
-    if (!exists) {
-      wishlist.push(product);
-      localStorage.setItem("wishlist", JSON.stringify(wishlist));
-      alert(`Đã thêm "${product.name}" vào yêu thích!`);
-    } else {
-      alert("Sản phẩm đã có trong danh sách yêu thích");
-    }
-  };
-
   return (
     <div className="category-page-container">
       {/* Page Header */}
@@ -155,13 +138,6 @@ function CategoryPage() {
             <div key={p._id} className="product-card">
               {/* Quick Actions */}
               <div className="quick-actions">
-                <button 
-                  className="quick-action-btn"
-                  onClick={(e) => addToWishlist(p, e)}
-                  title="Thêm vào yêu thích"
-                >
-                  ♡
-                </button>
                 <button 
                   className="quick-action-btn"
                   title="Xem nhanh"

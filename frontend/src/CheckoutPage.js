@@ -1,4 +1,6 @@
+// src/pages/CheckoutPage.js
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./CheckoutPage.css";
 
 const CheckoutPage = () => {
@@ -9,139 +11,200 @@ const CheckoutPage = () => {
     phone: "",
     addressLine1: "",
     addressLine2: "",
-    city: "",
     district: "",
-    note: "",
+    city: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // 1️⃣ Lấy giỏ hàng từ server theo token
+  // ===============================================
+  // 🔹 LOAD GIỎ HÀNG
+  // ===============================================
   useEffect(() => {
     if (!token) {
-      alert("Vui lòng đăng nhập trước khi thanh toán");
+      alert("Bạn cần đăng nhập để thanh toán!");
+      navigate("/login");
       return;
     }
 
     const fetchCart = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/cart", {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` },
         });
+
         const data = await res.json();
-        setCart(data.items?.map(item => ({
-          ...item,
-          price: item.price ?? 0,
-          quantity: item.quantity ?? 1
-        })) || []);
+
+        setCart(
+          data.items?.map((item) => ({
+            ...item,
+            price: item.price ?? 0,
+            quantity: item.quantity ?? 1,
+          })) || []
+        );
       } catch (err) {
-        console.error("Lỗi lấy giỏ hàng:", err);
+        console.error("Lỗi tải giỏ hàng:", err);
+        alert("Không thể tải giỏ hàng!");
+        navigate("/cart");
       }
     };
 
     fetchCart();
-  }, [token]);
+  }, [token, navigate]);
 
+  // ===============================================
+  // 🔹 TÍNH TỔNG TIỀN
+  // ===============================================
+  const totalPrice = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  // ===============================================
+  // 🔹 XỬ LÝ THAY ĐỔI FORM
+  // ===============================================
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // 2️⃣ Gửi đơn hàng lên server
-  const handleCheckout = async () => {
-    const requiredFields = ["name", "email", "phone", "addressLine1", "city", "district"];
-    for (let field of requiredFields) {
-      if (!form[field]) {
-        alert(`Vui lòng nhập ${field}`);
-        return;
-      }
-    }
+  // ===============================================
+  // 🔥 THANH TOÁN VNPAY
+  // ===============================================
+  const handleVnpayPayment = async () => {
+    if (cart.length === 0) return alert("Giỏ hàng trống!");
 
-    if (!token) {
-      alert("Vui lòng đăng nhập trước khi thanh toán");
-      return;
+    const required = ["name", "email", "phone", "addressLine1", "district", "city"];
+    for (let f of required) {
+      if (!form[f].trim()) return alert("Vui lòng nhập đầy đủ thông tin giao hàng!");
     }
-
-    const orderData = {
-      cart: cart.map(item => ({
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity
-      })),
-      customer: form,
-      paymentMethod,
-    };
 
     try {
-      const res = await fetch("http://localhost:5000/api/orders", {
+      const res = await fetch("http://localhost:5000/api/vnpay/create_payment_url", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({
+          amount: totalPrice,
+        }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        alert(`Đặt hàng thành công! Mã đơn: ${data.orderId}\nTổng: ${data.total.toLocaleString()} ₫`);
-        setCart([]);
+
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl; // Chuyển sang VNPAY
       } else {
-        alert(data.message || "Đặt hàng thất bại");
+        alert("Không tạo được URL thanh toán!");
       }
     } catch (err) {
-      console.error("Lỗi đặt hàng:", err);
-      alert("Không thể đặt hàng");
+      console.error("Lỗi khi tạo URL VNPAY:", err);
+      alert("Không thể kết nối VNPAY!");
     }
   };
 
-  const totalPrice = cart.reduce((sum, item) => sum + (item.price ?? 0) * (item.quantity ?? 1), 0);
-
-  if (!cart.length) return <p>Giỏ hàng trống. <a href="/">Quay lại trang chủ</a></p>;
+  // ===============================================
+  // 🔹 GIAO DIỆN
+  // ===============================================
+  if (cart.length === 0) {
+    return (
+      <div style={{ padding: 50 }}>
+        <h2>Giỏ hàng trống</h2>
+        <a href="/">Tiếp tục mua sắm</a>
+      </div>
+    );
+  }
 
   return (
-    <div className="checkout-container">
-      <div className="checkout-left">
-        <h2>Thông tin khách hàng</h2>
-        {["name","email","phone","addressLine1","addressLine2","district","city","note"].map(field => (
-          <div className="form-group" key={field}>
-            <label>{field}</label>
-            {field === "note" ? (
-              <textarea name={field} value={form[field]} onChange={handleChange} placeholder="Ghi chú..." />
-            ) : (
-              <input name={field} value={form[field]} onChange={handleChange} placeholder={field} />
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="checkout-container" style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <h1 style={{ textAlign: "center", marginBottom: 30 }}>Thanh toán</h1>
 
-      <div className="checkout-right">
-        <h2>Đơn hàng</h2>
-        <ul className="cart-items">
-          {cart.map(item => (
-            <li key={item.productId} className="cart-item">
-              <img src={item.image || "https://via.placeholder.com/50"} alt={item.name} />
-              <span>{item.name} x {item.quantity} - {(item.price ?? 0).toLocaleString()} ₫</span>
-            </li>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+        {/* LEFT FORM */}
+        <div>
+          <h2>Thông tin giao hàng</h2>
+
+          {[
+            { name: "name", label: "Họ tên" },
+            { name: "email", label: "Email" },
+            { name: "phone", label: "Số điện thoại" },
+            { name: "addressLine1", label: "Địa chỉ" },
+            { name: "addressLine2", label: "Địa chỉ bổ sung" },
+            { name: "district", label: "Quận/Huyện" },
+            { name: "city", label: "Tỉnh/Thành phố" },
+          ].map((f) => (
+            <div key={f.name} style={{ marginBottom: 12 }}>
+              <label>{f.label}</label>
+              <input
+                type="text"
+                name={f.name}
+                value={form[f.name]}
+                onChange={handleChange}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #ccc",
+                  borderRadius: 6,
+                }}
+              />
+            </div>
           ))}
-        </ul>
-        <p className="total">Tổng: {totalPrice.toLocaleString()} ₫</p>
-
-        <h3>Phương thức thanh toán</h3>
-        <div className="payment-methods">
-          <label>
-            <input type="radio" name="payment" value="cash" checked={paymentMethod === "cash"} onChange={() => setPaymentMethod("cash")} />
-            Thanh toán khi nhận hàng
-          </label>
-          <label>
-            <input type="radio" name="payment" value="bank" checked={paymentMethod === "bank"} onChange={() => setPaymentMethod("bank")} />
-            Chuyển khoản ngân hàng
-          </label>
         </div>
 
-        <button className="checkout-btn" onClick={handleCheckout}>Thanh toán</button>
+        {/* RIGHT ORDER SUMMARY */}
+        <div>
+          <h2>Đơn hàng</h2>
+
+          <div style={{ border: "1px solid #eee", padding: 15, borderRadius: 8 }}>
+            {cart.map((item) => (
+              <div
+                key={item.productId}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 0",
+                  borderBottom: "1px solid #f0f0f0",
+                }}
+              >
+                <strong>
+                  {item.name} × {item.quantity}
+                </strong>
+                <span>{(item.price * item.quantity).toLocaleString()} ₫</span>
+              </div>
+            ))}
+
+            <div
+              style={{
+                fontSize: "1.4em",
+                textAlign: "right",
+                marginTop: 20,
+                color: "#0A68FE",
+                fontWeight: "bold",
+              }}
+            >
+              Tổng: {totalPrice.toLocaleString()} ₫
+            </div>
+          </div>
+
+          {/* BUTTON THANH TOÁN VNPAY */}
+          <button
+            onClick={handleVnpayPayment}
+            style={{
+              marginTop: 20,
+              width: "100%",
+              padding: "16px",
+              fontSize: 18,
+              borderRadius: 8,
+              background: "#0A68FE",
+              color: "white",
+              cursor: "pointer",
+              border: "none",
+            }}
+          >
+            Thanh toán VNPAY
+          </button>
+        </div>
       </div>
     </div>
   );

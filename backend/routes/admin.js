@@ -51,7 +51,7 @@ router.post("/products", upload.array("images"), async (req, res) => {
 
     // Xử lý ảnh
     const imgs = (req.files || []).map((f, idx) => ({
-      url: `/uploads/${f.filename}`,
+      url: f.filename,
       sort: idx + 1
     }));
 
@@ -61,7 +61,7 @@ router.post("/products", upload.array("images"), async (req, res) => {
       basePrice,
       description,
       categoryId,
-      variants, // dạng JSON string nếu gửi từ form-data
+      variants, 
       isActive
     } = req.body;
 
@@ -141,7 +141,7 @@ router.put("/products/:id", upload.array("images"), async (req, res) => {
 
     // Xử lý ảnh mới upload
     const newImages = (req.files || []).map((f, idx) => ({
-      url: `/uploads/${f.filename}`,
+     url: f.filename,
       sort: idx + 1
     }));
 

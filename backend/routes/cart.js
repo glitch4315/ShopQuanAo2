@@ -1,4 +1,3 @@
-// routes/cart.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
@@ -82,7 +81,7 @@ router.post("/add", authMiddleware, async (req, res) => {
 
     res.json({ message: "Đã thêm sản phẩm vào giỏ" });
   } catch (err) {
-    console.error("❌ Add cart error:", err);
+    console.error("Add cart error:", err);
     res.status(500).json({ message: "Lỗi server khi thêm vào giỏ hàng" });
   }
 });
